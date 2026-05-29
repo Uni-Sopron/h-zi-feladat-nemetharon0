@@ -1,183 +1,156 @@
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { ensureSeedData, loadItem, saveItem, STORAGE_KEYS, uid } from "../utils/storage";
-import { fetchRates, DEFAULT_SUPPORTED_SYMBOLS } from "../utils/rates";
-import { DEFAULT_ACCOUNT_COLOR } from "../constants/colors";
+import { createContext, useContext, useEffect, useMemo, useState, useCallback } from 'react'
+import { api } from '../utils/api'
+import { fetchRates, DEFAULT_SUPPORTED_SYMBOLS } from '../utils/rates'
 
-const DataContext = createContext(null);
+const DataContext = createContext(null)
 
-// árfolyam fallback értékek, ha nincs api vagy nem jön válasz
-const FALLBACK_RATES = {
-  HUF: 1,
-  EUR: 380,
-  USD: 330,
-  GBP: 440,
-};
-
-// free fixer.io limit: 100 req/month, szóval naponta egyszer frissítünk
-const ONE_DAY = 1000 * 60 * 60 * 24;
+const FALLBACK_RATES = { HUF: 1, EUR: 380, USD: 330, GBP: 440 }
+const ONE_DAY = 1000 * 60 * 60 * 24   // fixer.io limit miatt napi 1x frissítjük az árfolyamokat
 
 export const DataProvider = ({ children }) => {
-  const [accounts, setAccounts] = useState([]);
-  const [records, setRecords] = useState([]);
-  const [rates, setRates] = useState(() => loadItem(STORAGE_KEYS.rates, FALLBACK_RATES));
-  const [lastRatesFetched, setLastRatesFetched] = useState(() => loadItem(STORAGE_KEYS.lastRatesFetched, null));
-  const [currencies] = useState(DEFAULT_SUPPORTED_SYMBOLS);
+  const [accounts, setAccounts] = useState([])
+  const [records, setRecords] = useState([])
+  const [rates, setRates] = useState(FALLBACK_RATES)
+  const [lastRatesFetched, setLastRatesFetched] = useState(null)
+  const [currencies] = useState(DEFAULT_SUPPORTED_SYMBOLS)
+  const [loading, setLoading] = useState(true)
 
-  // első betöltés: seed vagy localStorage tartalom
+  // Adatok betöltése a backendről
   useEffect(() => {
-    const data = ensureSeedData();
-    setAccounts(data.accounts);
-    setRecords(data.records);
-  }, []);
+    const loadAll = async () => {
+      try {
+        const [accs, recs] = await Promise.all([
+          api.get('/accounts'),
+          api.get('/records'),
+        ])
+        setAccounts(accs)
+        setRecords(recs)
+      } catch (err) {
+        console.error('Betöltési hiba:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadAll()
+  }, [])
 
-  // mentés localStorage-be, ha változik
-  useEffect(() => {
-    if (accounts.length) saveItem(STORAGE_KEYS.accounts, accounts);
-  }, [accounts]);
-
-  useEffect(() => {
-    if (records.length) saveItem(STORAGE_KEYS.records, records);
-  }, [records]);
-
-  useEffect(() => {
-    if (rates) saveItem(STORAGE_KEYS.rates, rates);
-  }, [rates]);
-
-  useEffect(() => {
-    if (lastRatesFetched) saveItem(STORAGE_KEYS.lastRatesFetched, lastRatesFetched);
-  }, [lastRatesFetched]);
-
-  // árfolyam frissítésnél ha nincs kulcs, akkor fallbackre érték
-  const refreshRates = async () => {
-    const apiKey = import.meta.env.VITE_FIXER_KEY;
+  // Árfolyamok frissítése
+  const refreshRates = useCallback(async () => {
+    const apiKey = import.meta.env.VITE_FIXER_KEY
     if (!apiKey) {
-      setRates((prev) => prev || FALLBACK_RATES);
-      setLastRatesFetched(Date.now());
-      return;
+      setRates(FALLBACK_RATES)
+      setLastRatesFetched(Date.now())
+      return
     }
-
     try {
-      const result = await fetchRates(apiKey);
+      const result = await fetchRates(apiKey)
       if (result?.rates) {
-        setRates(result.rates);
-        setLastRatesFetched(Date.now());
+        setRates(result.rates)
+        setLastRatesFetched(Date.now())
       }
-    } catch (err) {
-      console.error("Nem sikerült frissíteni az árfolyamokat", err);
-      setRates((prev) => prev || FALLBACK_RATES);
-      setLastRatesFetched(Date.now());
+    } catch {
+      setRates(FALLBACK_RATES)
+      setLastRatesFetched(Date.now())
     }
-  };
+  }, [])
 
   useEffect(() => {
-    const now = Date.now();
-    const tooOld = !lastRatesFetched || now - lastRatesFetched > ONE_DAY;
-    if (tooOld) refreshRates();
-    const interval = setInterval(refreshRates, ONE_DAY);
-    return () => clearInterval(interval);
-  }, [lastRatesFetched]);
+    const now = Date.now()
+    const tooOld = !lastRatesFetched || now - lastRatesFetched > ONE_DAY
+    if (tooOld) refreshRates()
+    const interval = setInterval(refreshRates, ONE_DAY)
+    return () => clearInterval(interval)
+  }, [])
 
-  // devizanem HUF-ra
   const convertToHuf = (amount, currency) => {
-    if (!amount || Number.isNaN(amount)) return 0;
-    if (!currency || currency === "HUF") return amount;
-    const rate = rates?.[currency];
-    if (!rate) return amount;
-    return amount * rate;
-  };
+    if (!amount || Number.isNaN(amount)) return 0
+    if (!currency || currency === 'HUF') return amount
+    const rate = rates?.[currency]
+    if (!rate) return amount
+    return amount * rate
+  }
 
-  // ACCOUNT CRUD
-  const addAccount = (partial) => {
-    const newAccount = { id: uid(), balance: 0, color: partial.color || DEFAULT_ACCOUNT_COLOR, ...partial };
-    setAccounts((prev) => [...prev, newAccount]);
-  };
+  // --- ACCOUNT CRUD ---
+  const addAccount = async (partial) => {
+    const created = await api.post('/accounts', partial)
+    setAccounts(prev => [...prev, created])
+  }
 
-  const updateAccount = (id, updates) => {
-    setAccounts((prev) => prev.map((acc) => (acc.id === id ? { ...acc, ...updates } : acc)));
-  };
+  const updateAccount = async (id, updates) => {
+    const updated = await api.put(`/accounts/${id}`, updates)
+    setAccounts(prev => prev.map(acc => acc._id === id ? updated : acc))
+  }
 
-  const deleteAccount = (id) => {
-    setAccounts((prev) => prev.filter((acc) => acc.id !== id));
-    setRecords((prev) => prev.filter((rec) => rec.accountId !== id));
-  };
+  const deleteAccount = async (id) => {
+    await api.delete(`/accounts/${id}`)
+    setAccounts(prev => prev.filter(acc => acc._id !== id))
+    setRecords(prev => prev.filter(rec => rec.accountId !== id))
+  }
 
-  const adjustAccountBalance = (accountId, amount, type) => {
-    if (!accountId) return;
-    setAccounts((prev) =>
-      prev.map((acc) => {
-        if (acc.id !== accountId) return acc;
-        const delta = type === "income" ? amount : -amount;
-        return { ...acc, balance: acc.balance + delta };
-      }),
-    );
-  };
+  // --- RECORD CRUD ---
+  const addRecord = async (partial) => {
+    const created = await api.post('/records', partial)
+    // balance frissítés lokálisan is
+    const delta = created.type === 'income' ? created.amount : -created.amount
+    setAccounts(prev => prev.map(acc =>
+      acc._id === created.accountId ? { ...acc, balance: acc.balance + delta } : acc
+    ))
+    setRecords(prev => [...prev, created])
+  }
 
-  // RECORD CRUD
-  const addRecord = (partial) => {
-    const newRecord = { id: uid(), ...partial };
-    adjustAccountBalance(newRecord.accountId, newRecord.amount, newRecord.type);
-    setRecords((prev) => [...prev, newRecord]);
-  };
+  const updateRecord = async (id, updates) => {
+    const old = records.find(r => r._id === id)
+    const updated = await api.put(`/records/${id}`, updates)
+    // balance korrekció lokálisan
+    if (old) {
+      const revert = old.type === 'income' ? -old.amount : old.amount
+      const delta = updated.type === 'income' ? updated.amount : -updated.amount
+      setAccounts(prev => prev.map(acc => {
+        if (acc._id === old.accountId) return { ...acc, balance: acc.balance + revert }
+        return acc
+      }))
+      setAccounts(prev => prev.map(acc => {
+        if (acc._id === updated.accountId) return { ...acc, balance: acc.balance + delta }
+        return acc
+      }))
+    }
+    setRecords(prev => prev.map(r => r._id === id ? updated : r))
+  }
 
-  const updateRecord = (id, updates) => {
-    setRecords((prev) =>
-      prev.map((rec) => {
-        if (rec.id !== id) return rec;
+  const deleteRecord = async (id) => {
+    const rec = records.find(r => r._id === id)
+    await api.delete(`/records/${id}`)
+    if (rec) {
+      const revert = rec.type === 'income' ? -rec.amount : rec.amount
+      setAccounts(prev => prev.map(acc =>
+        acc._id === rec.accountId ? { ...acc, balance: acc.balance + revert } : acc
+      ))
+    }
+    setRecords(prev => prev.filter(r => r._id !== id))
+  }
 
-        // ha account/type/amount változik, korrigáljuk a balance-ot
-        const next = { ...rec, ...updates };
-        if (
-          next.accountId !== rec.accountId ||
-          next.amount !== rec.amount ||
-          next.type !== rec.type
-        ) {
-          const inverseType = rec.type === "income" ? "expense" : "income";
-          adjustAccountBalance(rec.accountId, rec.amount, inverseType);
-          adjustAccountBalance(next.accountId, next.amount, next.type);
-        }
-        return next;
-      }),
-    );
-  };
+  const value = useMemo(() => ({
+    accounts,
+    records,
+    rates,
+    lastRatesFetched,
+    currencies,
+    loading,
+    refreshRates,
+    convertToHuf,
+    addAccount,
+    updateAccount,
+    deleteAccount,
+    addRecord,
+    updateRecord,
+    deleteRecord,
+  }), [accounts, records, rates, lastRatesFetched, loading])
 
-  const deleteRecord = (id) => {
-    setRecords((prev) => {
-      const rec = prev.find((r) => r.id === id);
-      if (rec) {
-        const inverseType = rec.type === "income" ? "expense" : "income";
-        adjustAccountBalance(rec.accountId, rec.amount, inverseType);
-      }
-      return prev.filter((r) => r.id !== id);
-    });
-  };
-
-
-  
-
-  const value = useMemo(
-    () => ({
-      accounts,
-      records,
-      rates,
-      lastRatesFetched,
-      currencies,
-      refreshRates,
-      convertToHuf,
-      addAccount,
-      updateAccount,
-      deleteAccount,
-      addRecord,
-      updateRecord,
-      deleteRecord,
-    }),
-    [accounts, records, rates, lastRatesFetched],
-  );
-
-  return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
-};
+  return <DataContext.Provider value={value}>{children}</DataContext.Provider>
+}
 
 export const useDataContext = () => {
-  const ctx = useContext(DataContext);
-  if (!ctx) throw new Error("useDataContext csak DataProvideren belül hívható");
-  return ctx;
-};
+  const ctx = useContext(DataContext)
+  if (!ctx) throw new Error('useDataContext csak DataProvideren belül hívható')
+  return ctx
+}
