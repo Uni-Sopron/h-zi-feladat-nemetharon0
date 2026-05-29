@@ -15,7 +15,7 @@ const Dashboard = () => {
   const [period, setPeriod] = useState("month");
 
   const accountMap = useMemo(
-    () => Object.fromEntries(accounts.map((acc) => [acc.id, acc])),
+    () => Object.fromEntries(accounts.map((acc) => [acc._id, acc])),
     [accounts],
   );
 
@@ -101,7 +101,7 @@ const Dashboard = () => {
         <div className="grid md:grid-cols-3 gap-4">
           {accounts.map((acc) => (
             <div
-              key={acc.id}
+              key={acc._id}
               className="border border-slate-200 rounded-xl p-4"
               style={{ backgroundColor: acc.color || "#f1f5f9" }}
             >

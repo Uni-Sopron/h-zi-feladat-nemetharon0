@@ -24,11 +24,11 @@ const Records = () => {
     amount: "",
     note: "",
     party: "",
-    accountId: accounts[0]?.id ?? "",
+    accountId: accounts[0]?._id ?? "",
     date: new Date().toISOString().slice(0, 10),
   });
 
-  const accountMap = useMemo(() => Object.fromEntries(accounts.map((a) => [a.id, a])), [accounts]);
+  const accountMap = useMemo(() => Object.fromEntries(accounts.map((a) => [a._id, a])), [accounts]);
 
   const sortedRecords = useMemo(() => {
     const list = [...records];
@@ -50,8 +50,8 @@ const Records = () => {
 
   // ha változik az accounts (pl. törlés), validáljuk az accountId-t a formban
   useMemo(() => {
-    if (!accounts.find((a) => a.id === form.accountId)) {
-      setForm((f) => ({ ...f, accountId: accounts[0]?.id ?? "" }));
+    if (!accounts.find((a) => a._id === form.accountId)) {
+      setForm((f) => ({ ...f, accountId: accounts[0]?._id ?? "" }));
     }
   }, [accounts]);
 
@@ -64,14 +64,14 @@ const Records = () => {
       amount: "",
       note: "",
       party: "",
-      accountId: accounts[0]?.id ?? "",
+      accountId: accounts[0]?._id ?? "",
       date: new Date().toISOString().slice(0, 10),
     });
     setShowModal(true);
   };
 
   const handleEdit = (rec) => {
-    setEditingId(rec.id);
+    setEditingId(rec._id);
     setForm({
       type: rec.type,
       category: rec.category || "",
@@ -164,7 +164,7 @@ const Records = () => {
                   const isIncome = rec.type === "income";
                   return (
                     <div
-                      key={rec.id}
+                      key={rec._id}
                       className="bg-white border border-slate-200 rounded-lg p-3 flex justify-between items-start"
                     >
                       <div className="space-y-1">
@@ -205,7 +205,7 @@ const Records = () => {
                           </button>
                           <button
                             type="button"
-                            onClick={() => deleteRecord(rec.id)}
+                            onClick={() => deleteRecord(rec._id)}
                             className="text-rose-600 hover:underline"
                           >
                             Törlés
@@ -297,7 +297,7 @@ const Records = () => {
                 className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white"
               >
                 {accounts.map((acc) => (
-                  <option key={acc.id} value={acc.id}>
+                  <option key={acc._id} value={acc._id}>
                     {acc.name} ({acc.currency})
                   </option>
                 ))}

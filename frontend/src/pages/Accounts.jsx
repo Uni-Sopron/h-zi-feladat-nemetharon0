@@ -89,7 +89,7 @@ const Accounts = () => {
   };
 
   const handleEdit = (acc) => {
-    setEditingId(acc.id);
+    setEditingId(acc._id);
     setForm({
       name: acc.name,
       type: acc.type,
@@ -141,7 +141,7 @@ const Accounts = () => {
             )}
             {sortedAccounts.map((acc) => (
               <div
-                key={acc.id}
+                key={acc._id}
                 className="border border-slate-200 rounded-lg p-4 flex justify-between"
                 style={{ backgroundColor: acc.color || "#f1f5f9" }}
               >
@@ -159,7 +159,7 @@ const Accounts = () => {
                     </button>
                     <button
                       type="button"
-                      onClick={() => deleteAccount(acc.id)}
+                      onClick={() => deleteAccount(acc._id)}
                       className="text-rose-600 hover:underline"
                     >
                       Törlés
