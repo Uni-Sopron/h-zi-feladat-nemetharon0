@@ -39,7 +39,7 @@ const Register = () => {
               value={form.username}
               onChange={(e) => setForm(f => ({ ...f, username: e.target.value }))}
               className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white"
-              placeholder="pl. kovacs_peter"
+              placeholder="pl. kiss_pista"
               required
             />
           </div>
@@ -50,7 +50,7 @@ const Register = () => {
               value={form.email}
               onChange={(e) => setForm(f => ({ ...f, email: e.target.value }))}
               className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white"
-              placeholder="email@example.com"
+              placeholder="email@pelda.hu"
               required
             />
           </div>

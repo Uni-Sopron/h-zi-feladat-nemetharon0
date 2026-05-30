@@ -28,7 +28,7 @@ const Login = () => {
       <div className="bg-white/90 backdrop-blur-md border border-white/20 rounded-2xl shadow-xl p-8 w-full max-w-sm space-y-6">
         <div>
           <h1 className="text-2xl font-semibold text-slate-900">Bejelentkezés</h1>
-          <p className="text-sm text-slate-500 mt-1">Üdv vissza!</p>
+          <p className="text-sm text-slate-500 mt-1">Üdv újra!</p>
         </div>
         {error && <div className="text-sm text-rose-600 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2">{error}</div>}
         <form onSubmit={handleSubmit} className="space-y-3">
@@ -39,7 +39,7 @@ const Login = () => {
               value={form.email}
               onChange={(e) => setForm(f => ({ ...f, email: e.target.value }))}
               className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white"
-              placeholder="email@example.com"
+              placeholder="email@pelda.hu"
               required
             />
           </div>
