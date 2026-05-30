@@ -6,6 +6,8 @@ import api from './routes/api.js'
 import authRoutes from './routes/auth.js'
 import accountRoutes from './routes/accounts.js'
 import recordRoutes from './routes/records.js'
+import { fileURLToPath } from 'url'
+import path from 'path'
 
 dotenv.config()
 
@@ -13,6 +15,9 @@ const app = express()
 app.use(cors({ origin: 'http://localhost:5173', credentials: true }))
 app.use(express.urlencoded({ extended: true }))
 app.use(express.json())
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')))
 
 app.use('/api', api)
 app.use('/api/auth', authRoutes)

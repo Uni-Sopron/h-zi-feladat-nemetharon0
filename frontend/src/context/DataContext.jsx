@@ -96,6 +96,7 @@ export const DataProvider = ({ children }) => {
       acc._id === created.accountId ? { ...acc, balance: acc.balance + delta } : acc
     ))
     setRecords(prev => [...prev, created])
+    return created
   }
 
   const updateRecord = async (id, updates) => {
@@ -144,6 +145,7 @@ export const DataProvider = ({ children }) => {
     addRecord,
     updateRecord,
     deleteRecord,
+    setRecords,
   }), [accounts, records, rates, lastRatesFetched, loading])
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>
