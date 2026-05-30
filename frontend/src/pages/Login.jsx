@@ -24,8 +24,8 @@ const Login = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
-      <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-8 w-full max-w-sm space-y-6">
+    <div className="min-h-screen bg-[url('/login-bg.png')] bg-cover bg-center bg-no-repeat flex items-center justify-center p-4">
+      <div className="bg-white/90 backdrop-blur-md border border-white/20 rounded-2xl shadow-xl p-8 w-full max-w-sm space-y-6">
         <div>
           <h1 className="text-2xl font-semibold text-slate-900">Bejelentkezés</h1>
           <p className="text-sm text-slate-500 mt-1">Üdv vissza!</p>
