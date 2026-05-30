@@ -10,8 +10,14 @@ const ONE_DAY = 1000 * 60 * 60 * 24   // fixer.io limit miatt napi 1x frissítj�
 export const DataProvider = ({ children }) => {
   const [accounts, setAccounts] = useState([])
   const [records, setRecords] = useState([])
-  const [rates, setRates] = useState(FALLBACK_RATES)
-  const [lastRatesFetched, setLastRatesFetched] = useState(null)
+  const [rates, setRates] = useState(() => {
+    const saved = localStorage.getItem('pf_rates')
+    return saved ? JSON.parse(saved) : FALLBACK_RATES
+  })
+  const [lastRatesFetched, setLastRatesFetched] = useState(() => {
+    const saved = localStorage.getItem('pf_lastRatesFetched')
+    return saved ? parseInt(saved, 10) : null
+  })
   const [currencies] = useState(DEFAULT_SUPPORTED_SYMBOLS)
   const [loading, setLoading] = useState(true)
 
@@ -47,10 +53,13 @@ export const DataProvider = ({ children }) => {
       if (result?.rates) {
         setRates(result.rates)
         setLastRatesFetched(Date.now())
+        localStorage.setItem('pf_rates', JSON.stringify(result.rates))
+        localStorage.setItem('pf_lastRatesFetched', Date.now().toString())
       }
     } catch {
-      setRates(FALLBACK_RATES)
+      // Hiba esetén megtartjuk az eddigi értékeket, legfeljebb 1 nap múlva újra próbálja
       setLastRatesFetched(Date.now())
+      localStorage.setItem('pf_lastRatesFetched', Date.now().toString())
     }
   }, [])
 
