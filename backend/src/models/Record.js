@@ -10,6 +10,7 @@ const recordSchema = new mongoose.Schema({
   party:     { type: String, default: '' },
   date:      { type: String, required: true },  // "YYYY-MM-DD" string
   attachment:{ type: String, default: null },   // TODO
+  tags: { type: [String], default: [] },
 }, { timestamps: true })
 
 export default mongoose.model('Record', recordSchema)

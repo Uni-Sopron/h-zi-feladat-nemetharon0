@@ -18,12 +18,14 @@ const API_BASE = import.meta.env.VITE_API_URL?.replace("/api", "") || "http://lo
 const Records = () => {
   const { records, accounts, addRecord, updateRecord, deleteRecord, setRecords } = useData();
   const [sortBy, setSortBy] = useState("newest");
+  const [filterTag, setFilterTag] = useState("");
   const [editingId, setEditingId] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [error, setError] = useState("");
   const [attachmentFile, setAttachmentFile] = useState(null);
   const [existingAttachment, setExistingAttachment] = useState(null);
   const [deleteAttachment, setDeleteAttachment] = useState(false);
+  const [tagInput, setTagInput] = useState("");
   const [form, setForm] = useState({
     type: "expense",
     category: "",
@@ -32,9 +34,17 @@ const Records = () => {
     party: "",
     accountId: accounts[0]?._id ?? "",
     date: new Date().toISOString().slice(0, 10),
+    tags: [],
   });
 
   const accountMap = useMemo(() => Object.fromEntries(accounts.map((a) => [a._id, a])), [accounts]);
+
+  // összes egyedi tag az összes rekordból — szűrő dropdownhoz
+  const allTags = useMemo(() => {
+    const set = new Set()
+    records.forEach((r) => r.tags?.forEach((t) => set.add(t)))
+    return [...set].sort()
+  }, [records])
 
   const sortedRecords = useMemo(() => {
     const list = [...records];
@@ -44,21 +54,25 @@ const Records = () => {
     });
   }, [records, sortBy]);
 
+  const filteredRecords = useMemo(() => {
+    if (!filterTag) return sortedRecords
+    return sortedRecords.filter((r) => r.tags?.includes(filterTag))
+  }, [sortedRecords, filterTag])
+
   const groupedByDate = useMemo(() => {
     const groups = {};
-    sortedRecords.forEach((rec) => {
+    filteredRecords.forEach((rec) => {
       if (!groups[rec.date]) groups[rec.date] = [];
       groups[rec.date].push(rec);
     });
     return groups;
-  }, [sortedRecords]);
+  }, [filteredRecords]);
 
   const dateKeys = useMemo(
     () => Object.keys(groupedByDate).sort((a, b) => (sortBy === "newest" ? (a < b ? 1 : -1) : a > b ? 1 : -1)),
     [groupedByDate, sortBy],
   );
 
-  // ha változik az accounts (pl. törlés), validáljuk az accountId-t a formban
   useMemo(() => {
     if (!accounts.find((a) => a._id === form.accountId)) {
       setForm((f) => ({ ...f, accountId: accounts[0]?._id ?? "" }));
@@ -71,6 +85,7 @@ const Records = () => {
     setAttachmentFile(null);
     setExistingAttachment(null);
     setDeleteAttachment(false);
+    setTagInput("");
   };
 
   const openNewModal = () => {
@@ -83,6 +98,7 @@ const Records = () => {
       party: "",
       accountId: accounts[0]?._id ?? "",
       date: new Date().toISOString().slice(0, 10),
+      tags: [],
     });
     setShowModal(true);
   };
@@ -98,6 +114,7 @@ const Records = () => {
       party: rec.party || "",
       accountId: rec.accountId,
       date: rec.date || new Date().toISOString().slice(0, 10),
+      tags: rec.tags ?? [],
     });
     setExistingAttachment(rec.attachment ?? null);
     setShowModal(true);
@@ -107,6 +124,22 @@ const Records = () => {
     resetModalState();
     setShowModal(false);
   };
+
+  // tag hozzáadása Enter vagy vessző lenyomásra
+  const handleTagKeyDown = (e) => {
+    if (e.key === "Enter" || e.key === ",") {
+      e.preventDefault()
+      const val = tagInput.trim().toLowerCase()
+      if (val && !form.tags.includes(val)) {
+        setForm((f) => ({ ...f, tags: [...f.tags, val] }))
+      }
+      setTagInput("")
+    }
+  }
+
+  const removeTag = (tag) => {
+    setForm((f) => ({ ...f, tags: f.tags.filter((t) => t !== tag) }))
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -141,7 +174,7 @@ const Records = () => {
       }
     }
 
-    setForm((f) => ({ ...f, category: "", amount: "", note: "", party: "" }));
+    setForm((f) => ({ ...f, category: "", amount: "", note: "", party: "", tags: [] }));
     closeModal();
   };
 
@@ -149,7 +182,23 @@ const Records = () => {
     <section className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <h1 className="text-2xl font-semibold text-slate-900">Bejegyzések</h1>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Szűrés címke szerint */}
+          {allTags.length > 0 && (
+            <label className="text-sm text-slate-600 flex items-center gap-2">
+              Címke:
+              <select
+                value={filterTag}
+                onChange={(e) => setFilterTag(e.target.value)}
+                className="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white"
+              >
+                <option value="">Összes</option>
+                {allTags.map((t) => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
+              </select>
+            </label>
+          )}
           <label className="text-sm text-slate-600 flex items-center gap-2">
             Rendezés:
             <select
@@ -189,11 +238,17 @@ const Records = () => {
                     className="bg-white border border-slate-200 rounded-lg p-3 flex justify-between items-start"
                   >
                     <div className="space-y-1">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <span className={`text-xs font-semibold px-2 py-1 rounded-full ${isIncome ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"}`}>
                           {typeLabels[rec.type]}
                         </span>
                         <span className="text-sm text-slate-600">{rec.category || ""}</span>
+                        {/* Címke chipek */}
+                        {rec.tags?.map((tag) => (
+                          <span key={tag} className="text-xs px-2 py-0.5 rounded-full bg-sky-100 text-sky-700 border border-sky-200">
+                            #{tag}
+                          </span>
+                        ))}
                       </div>
                       {rec.note && <div className="text-sm text-slate-700">{rec.note}</div>}
                       {rec.party && <div className="text-xs text-slate-500">Fizető: {rec.party}</div>}
@@ -227,11 +282,13 @@ const Records = () => {
                         <button type="button" onClick={() => handleEdit(rec)} className="text-sky-600 hover:underline">
                           Szerkesztés
                         </button>
-                        <button type="button" onClick={() => {
-                          if (window.confirm('Biztosan törölni akarod?')) {
-                            deleteRecord(rec._id)
-                          }
-                        }} className="text-rose-600 hover:underline">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (window.confirm("Biztosan törölni akarod?")) deleteRecord(rec._id);
+                          }}
+                          className="text-rose-600 hover:underline"
+                        >
                           Törlés
                         </button>
                       </div>
@@ -334,10 +391,32 @@ const Records = () => {
               />
             </div>
 
+            {/* Címkék */}
+            <div className="space-y-1">
+              <label className="text-sm text-slate-700">Címkék</label>
+              <input
+                type="text"
+                value={tagInput}
+                onChange={(e) => setTagInput(e.target.value)}
+                onKeyDown={handleTagKeyDown}
+                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white"
+                placeholder="Írj be egy címkét"
+              />
+              {form.tags.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {form.tags.map((tag) => (
+                    <span key={tag} className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-sky-100 text-sky-700 border border-sky-200">
+                      #{tag}
+                      <button type="button" onClick={() => removeTag(tag)} className="hover:text-rose-600">×</button>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+
             <div className="space-y-1">
               <label className="text-sm text-slate-700">Bizonylat (kép vagy PDF)</label>
 
-              {/* Meglévő bizonylat — csak ha még nem jelöltük törlésre */}
               {existingAttachment && !deleteAttachment && (
                 <div className="flex items-center justify-between bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
                   <a
@@ -358,7 +437,6 @@ const Records = () => {
                 </div>
               )}
 
-              {/* Új fájl input — ha nincs meglévő, vagy törlésre jelöltük */}
               {(!existingAttachment || deleteAttachment) && (
                 <>
                   <input
@@ -382,7 +460,6 @@ const Records = () => {
                       </button>
                     </div>
                   )}
-                  {/* Visszavonás ha csak törlésre jelöltük de még nem választottunk új fájlt */}
                   {deleteAttachment && !attachmentFile && (
                     <button
                       type="button"
