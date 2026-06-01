@@ -5,6 +5,7 @@ import Accounts from './pages/Accounts'
 import Records from './pages/Records'
 import Login from './pages/Login'
 import Register from './pages/Register'
+import Profile from './pages/Profile'
 import { DataProvider } from './context/DataContext'
 import { AuthProvider, useAuth } from './context/AuthContext'
 
@@ -27,6 +28,7 @@ const AppRoutes = () => {
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/accounts" element={<Accounts />} />
                 <Route path="/records" element={<Records />} />
+                <Route path="/profile" element={<Profile />} />
               </Routes>
             </Layout>
           </DataProvider>
