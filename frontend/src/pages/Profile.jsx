@@ -32,25 +32,8 @@ const Profile = () => {
     <section className="space-y-6">
       <h1 className="text-2xl font-semibold text-slate-900">Profil szerkesztése</h1>
 
-      <div className="grid md:grid-cols-3 gap-6 items-center">
-
-        {/* Bal oldal — avatar kártya */}
-        <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 flex flex-col items-center gap-3 text-center">
-          <div className="w-20 h-20 rounded-full bg-sky-500 text-white text-2xl font-bold flex items-center justify-center shadow-sm">
-            {user?.username?.slice(0, 2).toUpperCase() ?? "?"}
-          </div>
-          <div>
-            <div className="font-semibold text-slate-900 text-lg">{user?.username}</div>
-            <div className="text-sm text-slate-500">{user?.email}</div>
-          </div>
-          <span className="text-xs px-3 py-1 rounded-full bg-sky-100 text-sky-700 border border-sky-200 font-semibold">
-            {form.baseCurrency}
-          </span>
-        </div>
-
-        {/* Jobb oldal — form */}
-        <div className="md:col-span-2 bg-slate-50 border border-slate-200 rounded-2xl p-6 space-y-4">
-          {error && <div className="text-sm text-rose-600 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2">{error}</div>}
+      <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6">
+        {error && <div className="text-sm text-rose-600 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2">{error}</div>}
           {success && <div className="text-sm text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">{success}</div>}
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -125,7 +108,6 @@ const Profile = () => {
             </button>
           </form>
         </div>
-      </div>
     </section>
   );
 };
