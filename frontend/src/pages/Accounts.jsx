@@ -159,7 +159,11 @@ const Accounts = () => {
                     </button>
                     <button
                       type="button"
-                      onClick={() => deleteAccount(acc._id)}
+                      onClick={() => {
+                        if (window.confirm('Biztosan törölni akarod?')) {
+                          deleteAccount(acc._id)
+                        }
+                      }}
                       className="text-rose-600 hover:underline"
                     >
                       Törlés

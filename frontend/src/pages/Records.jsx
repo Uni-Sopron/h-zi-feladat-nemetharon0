@@ -227,7 +227,11 @@ const Records = () => {
                         <button type="button" onClick={() => handleEdit(rec)} className="text-sky-600 hover:underline">
                           Szerkesztés
                         </button>
-                        <button type="button" onClick={() => deleteRecord(rec._id)} className="text-rose-600 hover:underline">
+                        <button type="button" onClick={() => {
+                          if (window.confirm('Biztosan törölni akarod?')) {
+                            deleteRecord(rec._id)
+                          }
+                        }} className="text-rose-600 hover:underline">
                           Törlés
                         </button>
                       </div>
