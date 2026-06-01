@@ -59,6 +59,7 @@ const Layout = ({ children }) => {
                     <div className="text-xs text-slate-500">Bejelentkezve</div>
                     <div className="text-sm font-semibold text-slate-900 truncate">{user?.username}</div>
                   </div>
+                  <NavLink to="/profile" className="block w-full text-left px-4 py-3 text-sm text-slate-700 hover:bg-slate-50 transition font-semibold border-b border-slate-100">Profil szerkesztése</NavLink>
                   <button
                     onClick={() => { setMenuOpen(false); logout(); }}
                     className="w-full text-left px-4 py-3 text-sm text-rose-600 hover:bg-rose-50 transition font-semibold"
